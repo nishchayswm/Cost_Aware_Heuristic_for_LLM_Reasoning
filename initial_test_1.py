@@ -14,7 +14,7 @@ def extract_json(raw):
     except json.JSONDecodeError:
         return None
 
-QUESTION = "Kushal want two bags of milk. He can convert 30 gm of protein into 1 bag of milk. One pack contains 10gm of protein. How many pack does Kushal need?"
+QUESTION = "You have 30 coins in dimes and quarters. Their total value is $5.10. Find the number of dimes you have."
 D_MAX = 10 #guessed for now
 
 def is_final(text):
