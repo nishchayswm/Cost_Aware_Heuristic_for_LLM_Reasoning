@@ -31,13 +31,20 @@ Both methods receive the same model, prompts, revision rules and limits. They ru
 code('''import sys, subprocess
 subprocess.check_call([sys.executable,'-m','pip','install','-q',
     'transformers>=4.51,<5','accelerate>=1.6,<2','bitsandbytes>=0.45,<1',
-    'huggingface_hub<1','pandas','matplotlib'])
-# If a restart is requested by Kaggle, restart the kernel and continue below.
+    'huggingface_hub<1','lm-format-enforcer==0.11.3','pandas','matplotlib'])
+# Restart the kernel after installation, then continue with the next cell.
 ''')
 code('''from pathlib import Path
 import base64, hashlib, io, json, os, zipfile
-PROJECT=Path('/kaggle/working/crosswords50')
+PROJECT=Path('/kaggle/working/crosswords50_schema_v2')
 PROJECT.mkdir(parents=True,exist_ok=True)
+# Preserve the original selection and model pin when upgrading an existing session.
+import shutil
+previous=Path('/kaggle/working/crosswords50')
+if (previous/'data').exists() and not (PROJECT/'data').exists():
+    shutil.copytree(previous/'data',PROJECT/'data')
+if (previous/'model_pin.json').exists() and not (PROJECT/'model_pin.json').exists():
+    shutil.copy2(previous/'model_pin.json',PROJECT/'model_pin.json')
 payload=base64.b64decode("'''+encoded+'''")
 assert hashlib.sha256(payload).hexdigest()=="'''+sha+'''"
 with zipfile.ZipFile(io.BytesIO(payload)) as archive:
@@ -55,6 +62,7 @@ print('Project:',PROJECT)
 md('''## 1. Check code and prepare the 50-puzzle dataset
 The tests below make no network/model calls. Dataset preparation downloads the original source file and license; it does not run inference. Selection seed is separate from the LLM trial seed. Keep selected puzzles and heuristic settings fixed throughout evaluation.''')
 code('''subprocess.run([sys.executable,'-m','unittest','test_crossword_bench','-q'],check=True)
+sys.modules.pop('crossword_bench',None)
 import crossword_bench as bench
 SELECTION_SEED=2026
 puzzles=bench.prepare_dataset(PROJECT/'data',selection_seed=SELECTION_SEED)
@@ -65,7 +73,7 @@ print('Source metadata:',PROJECT/'data/source_manifest.json')
 # Do not inspect solutions to tune the policy on these evaluation puzzles.
 ''')
 md('''## 2. Load Qwen on one GPU
-Uses `Qwen/Qwen2.5-7B-Instruct` in bitsandbytes 4-bit NF4. A model revision is pinned on first load. No paid API, Ollama service or uploaded model is needed. JSON generation is prompt-based, without a constrained grammar; parsing failures are counted.
+Uses `Qwen/Qwen2.5-7B-Instruct` in bitsandbytes 4-bit NF4. A model revision is pinned on first load. JSON Schema constrains both generation and evaluation. Move words must contain exactly five English letters. Scores and rating IDs are also validated locally; at most two retries are allowed and all calls/tokens count. Formatting constraints do not guarantee correct clue answers.
 
 The same backend is used for both policies. Results from NF4 should not be pooled with older Ollama/GGUF experiments as if the backend were identical. Model loading can take several minutes.''')
 code('''import torch, platform, importlib.metadata
@@ -88,9 +96,9 @@ model=AutoModelForCausalLM.from_pretrained(MODEL_ID,revision=pin['revision'],
     quantization_config=quant,device_map={'':0},torch_dtype=torch.float16,
     attn_implementation='sdpa',trust_remote_code=False).eval()
 client=bench.HFClient(model,tokenizer,torch)
-runtime=dict(**pin,backend='transformers-nf4-json-prompting',gpu=torch.cuda.get_device_name(0),
+runtime=dict(**pin,backend='transformers-nf4-json-schema-v2',gpu=torch.cuda.get_device_name(0),
     cuda=torch.version.cuda,python=platform.python_version(),
-    packages={name:importlib.metadata.version(name) for name in ('torch','transformers','accelerate','bitsandbytes','huggingface_hub')})
+    packages={name:importlib.metadata.version(name) for name in ('torch','transformers','accelerate','bitsandbytes','huggingface_hub','lm-format-enforcer')})
 bench.write_json(PROJECT/'runtime.json',runtime)
 (PROJECT/'pip_freeze.txt').write_text(subprocess.check_output([sys.executable,'-m','pip','freeze'],text=True))
 print('Loaded:',MODEL_ID, runtime['gpu'],pin['revision'])
@@ -112,14 +120,33 @@ config=copy.deepcopy(bench.DEFAULT)
 bench.write_json(PROJECT/'config.json',config)
 print(json.dumps(config,indent=2))
 ''')
+md('''## Preflight: validate generation and evaluation before the full run
+This small synthetic check makes real model calls and saves their costs separately under `preflight/`. It checks response format and legal placements, without scoring against any evaluation answers. It must pass before the 50-puzzle run.''')
+code('''import hashlib
+preflight_config={**config,'max_expansions':1}
+preflight_clues=['Fruit often baked in pies']*10
+preflight_key=bench.digest(dict(config=preflight_config,runtime=runtime,
+    code=hashlib.sha256(Path(bench.__file__).read_bytes()).hexdigest()))[:12]
+preflight_dir=PROJECT/'preflight'/preflight_key
+preflight_session=bench.Session(client,preflight_config,preflight_dir/'calls','format-preflight',42)
+preflight_result,preflight_trace=bench.solve(preflight_clues,'heuristic_bestfirst',preflight_session,preflight_config)
+bench.write_json(preflight_dir/'result.json',preflight_result)
+bench.write_json(preflight_dir/'trace.json',preflight_trace)
+PREFLIGHT_PASSED=(preflight_result['calls']>=2 and preflight_result['prediction']!='_'*25
+    and preflight_result['stop_reason']!='invalid_model_response')
+print(json.dumps(preflight_result,indent=2))
+assert PREFLIGHT_PASSED,'Preflight failed: inspect the saved raw calls before running 50 puzzles.'
+print('Preflight passed. Structured generation and evaluation produced a legal placement.')
+''')
 md('''## 4. Run exactly 50 puzzles
 Set `RUN_BENCHMARK=True` and execute this cell. Start with trial seed 42. Additional seeds repeat the same 50 puzzles; they do not select more puzzles. Both methods run for each puzzle, with alternating order.
 
 Completed methods and successful calls can be resumed with identical settings. A failed/interrupted inference whose token cost is unknown blocks that trial; start a fresh output trial rather than hide that cost. After a hard session reset, a stale `run.lock` must only be removed when no run is active. Save the export ZIP before ending your session.''')
 code('''RUN_BENCHMARK=False
 TRIAL_SEEDS=[42]  # Optional later repetition: [42,43,44]
-RUN_LABEL='main'  # Use a new label for changed settings or a fresh trial.
+RUN_LABEL='schema_v2'  # Use a new label for changed settings or a fresh trial.
 if RUN_BENCHMARK:
+    assert globals().get('PREFLIGHT_PASSED',False),'Run the preflight cell successfully first.'
     for seed in TRIAL_SEEDS:
         output=PROJECT/'results'/f'{RUN_LABEL}_seed{seed}'
         summary=bench.run(puzzles,client,config,runtime,output,seed=seed)
@@ -157,19 +184,24 @@ for directory in sorted((PROJECT/'results').glob('*')):
 md('''## 6. Download results or a checkpoint
 Run after completing or stopping the benchmark. The ZIP includes code, exact configuration, dataset provenance, selected questions and answer keys, per-problem results, summaries, raw calls, traces and plots. It excludes model weights. Also save Kaggle notebook outputs.
 
-For another session, attach your own ZIP as input and extract it under `/kaggle/working` before running setup; it restores the `crosswords50` directory. Resume requires the same experiment/runtime. A GPU/session interruption before a call is saved leaves unknown cost; use a fresh trial for clean cost measurement.''')
+For another session, attach your own ZIP as input and extract it under `/kaggle/working` before running setup; it restores the `crosswords50_schema_v2` directory. Resume requires the same experiment/runtime. A GPU/session interruption before a call is saved leaves unknown cost; use a fresh trial for clean cost measurement.''')
 code('''from IPython.display import FileLink
-export=Path('/kaggle/working/crosswords50_results.zip')
+export=Path('/kaggle/working/crosswords50_schema_v2_results.zip')
 with zipfile.ZipFile(export,'w',zipfile.ZIP_DEFLATED) as archive:
     for path in PROJECT.rglob('*'):
         if path.is_file() and '__pycache__' not in path.parts and path.name!='run.lock':
-            archive.write(path,Path('crosswords50')/path.relative_to(PROJECT))
-display(FileLink(str(export)))
+            archive.write(path,Path('crosswords50_schema_v2')/path.relative_to(PROJECT))
+previous_dir=Path.cwd()
+try:
+    os.chdir(export.parent)
+    display(FileLink(export.name))
+finally:
+    os.chdir(previous_dir)
 ''')
 nb=dict(nbformat=4,nbformat_minor=5,metadata={'kernelspec':{'display_name':'Python 3','language':'python','name':'python3'},'language_info':{'name':'python','version':'3.11'}},cells=cells)
 for index,cell in enumerate(cells):
     cell['id']=f'crosswords-{index:02d}'
     if cell['cell_type']=='code':compile(cell['source'],f'cell-{index}','exec')
 path=ROOT/'Crosswords50_Heuristic_vs_ToT_Kaggle.ipynb'
-path.write_text(json.dumps(nb,indent=1),encoding='utf-8')
+path.write_text(json.dumps(nb,indent=1)+'\n',encoding='utf-8',newline='\n')
 print('Created:',path,'; all code cells compile. No notebook cells executed.')

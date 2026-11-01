@@ -8,7 +8,7 @@ import crossword_bench as b
 class FakeClient:
     def __init__(self):self.requests=[]
     def count(self,prompt):return 20
-    def generate(self,prompt,seed,limit,temperature):
+    def generate(self,prompt,seed,limit,temperature,schema=None):
         self.requests.append(prompt)
         if prompt.startswith('Propose'):
             value={'moves':[{'slot':'h1','word':'APPLE','confidence':.9}, {'slot':'h2','word':'PEARS','confidence':.8}]}
@@ -51,12 +51,13 @@ class Tests(unittest.TestCase):
 
     def test_malformed_json(self):
         class Bad(FakeClient):
-            def generate(self,*a):return dict(text='not json',input_tokens=20,output_tokens=5,seconds=.1,truncated=False)
+            def generate(self,*a,**kwargs):return dict(text='not json',input_tokens=20,output_tokens=5,seconds=.1,truncated=False)
         with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as tmp:
             session=b.Session(Bad(),b.DEFAULT,tmp,'q',42)
-            self.assertEqual(session.ask('hello','generate',10),{})
-            self.assertEqual(session.parse_failures,1)
-            self.assertEqual(session.tokens,25)
+            with self.assertRaises(b.InvalidResponse):session.ask('hello','generate',10)
+            self.assertEqual(session.parse_failures,3)
+            self.assertEqual(session.calls,3)
+            self.assertEqual(session.tokens,75)
 
     def test_dataset_pinning_and_no_answer_input(self):
         records=[]
@@ -101,12 +102,62 @@ class Tests(unittest.TestCase):
 
     def test_interrupted_call_cannot_hide_cost(self):
         class Broken(FakeClient):
-            def generate(self,*a):raise RuntimeError('backend failure')
+            def generate(self,*a,**kwargs):raise RuntimeError('backend failure')
         with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as tmp:
             session=b.Session(Broken(),b.DEFAULT,tmp,'q',42)
             with self.assertRaisesRegex(RuntimeError,'backend failure'):session.ask('hello','generate',10)
             session=b.Session(FakeClient(),b.DEFAULT,tmp,'q',42)
             with self.assertRaisesRegex(RuntimeError,'cost is unknown'):session.ask('hello','generate',10)
+
+    def test_short_words_and_trailing_markdown_are_retried_and_charged(self):
+        short={'moves':[{'slot':'h1','word':'HOLD','confidence':.8}]}
+        good={'moves':[{'slot':'h1','word':'APPLE','confidence':.8}]}
+        class Recovering(FakeClient):
+            def generate(self,prompt,seed,limit,temperature,schema=None):
+                self.requests.append((prompt,seed,schema))
+                text=[json.dumps(good)+'```',json.dumps(short),json.dumps(good)][len(self.requests)-1]
+                return dict(text=text,input_tokens=20,output_tokens=10,seconds=.1,truncated=False)
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as tmp:
+            client=Recovering();s=b.Session(client,b.DEFAULT,tmp,'q',42)
+            self.assertEqual(s.ask('propose','generate',350),good)
+            self.assertEqual((s.calls,s.tokens,s.parse_failures),(3,90,2))
+            self.assertEqual(len({r[1] for r in client.requests}),3)
+            before=len(client.requests)
+            replay=b.Session(client,b.DEFAULT,tmp,'q',42)
+            self.assertEqual(replay.ask('propose','generate',350),good)
+            self.assertEqual(replay.tokens,90)
+            self.assertEqual(len(client.requests),before)
+
+    def test_retry_respects_budget_and_reports_failure(self):
+        class Bad(FakeClient):
+            def generate(self,*args,**kwargs):
+                return dict(text='{}',input_tokens=20,output_tokens=5,seconds=.1,truncated=False)
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as tmp:
+            cfg={**b.DEFAULT,'max_calls':1}
+            s=b.Session(Bad(),cfg,tmp,'q',42)
+            result,_=b.solve(['clue']*10,'tot_dfs',s,cfg)
+            self.assertEqual(result['stop_reason'],'token_or_call_budget')
+            self.assertEqual((result['calls'],result['total_tokens']),(1,25))
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as tmp:
+            s=b.Session(Bad(),b.DEFAULT,tmp,'q',42)
+            result,trace=b.solve(['clue']*10,'tot_dfs',s,b.DEFAULT)
+            self.assertEqual(result['stop_reason'],'invalid_model_response')
+            self.assertEqual(result['calls'],3)
+            self.assertIn('error',trace[-1])
+
+    def test_decoding_constraint_rejects_short_words_and_markdown(self):
+        from lmformatenforcer import JsonSchemaParser
+        def accepts(text):
+            parser=JsonSchemaParser(b.response_schema('generate'))
+            for ch in text:
+                if ch not in parser.get_allowed_characters():return False
+                parser=parser.add_character(ch)
+            return parser.can_end()
+        good='{"moves":[{"slot":"h1","word":"APPLE","confidence":0.8}]}'
+        self.assertTrue(accepts(good))
+        for invalid in (good+'```',good+'\nuser\nCorrect JSON',good.replace('APPLE','HOLD'),
+                        good.replace('APPLE','BAH'),good.replace('h1','h6')):
+            self.assertFalse(accepts(invalid),invalid)
 
 if __name__=='__main__':unittest.main()
 

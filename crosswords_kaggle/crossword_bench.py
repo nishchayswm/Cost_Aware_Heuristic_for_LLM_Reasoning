@@ -14,7 +14,7 @@ METHODS = ('tot_dfs', 'heuristic_bestfirst')
 DEFAULT = dict(max_tokens=30000, max_calls=40, max_expansions=20,
                max_depth=20, branch_factor=3, max_frontier=60,
                generation_tokens=350, evaluation_tokens=500,
-               num_ctx=8192, temperature=0.6, prune_below=0.05,
+               num_ctx=8192, temperature=0.6, prune_below=0.05, json_retries=2,
                weights=dict(quality=.35, success=.30, depth=.05, cost=.15, diversity=.15))
 
 def digest(obj):
@@ -138,9 +138,45 @@ def priority(state, frontier, cfg, estimated_call_tokens):
     return w['quality']*f['quality']+w['success']*f['success']-w['depth']*f['depth']-w['cost']*f['cost']+w['diversity']*f['diversity']
 
 class BudgetStop(Exception): pass
+class InvalidResponse(ValueError): pass
+
+def response_schema(kind, count=3):
+    score=dict(type='number',minimum=0,maximum=1)
+    if kind=='generate':
+        key='moves'
+        properties=dict(slot=dict(type='string',enum=[slot_name(i) for i in range(10)]),
+                        word=dict(type='string',pattern='[A-Za-z]{5}'),confidence=score)
+    elif kind=='evaluate':
+        key='ratings'
+        properties=dict(id=dict(type='integer',enum=list(range(count))),q=score,p=score)
+    else:raise ValueError('Unknown response kind: '+kind)
+    item=dict(type='object',properties=properties,required=list(properties),additionalProperties=False)
+    return dict(type='object',properties={key:dict(type='array',items=item,minItems=1,maxItems=count)},
+                required=[key],additionalProperties=False)
+
+def validate_response(value,kind,schema):
+    key='moves' if kind=='generate' else 'ratings'
+    if not isinstance(value,dict) or set(value)!={key}:raise InvalidResponse('Expected only '+key)
+    items=value[key];spec=schema['properties'][key]
+    if not isinstance(items,list) or not 1<=len(items)<=spec['maxItems']:
+        raise InvalidResponse('Invalid '+key+' count')
+    for item in items:
+        props=spec['items']['properties']
+        if not isinstance(item,dict) or set(item)!=set(props):raise InvalidResponse('Unexpected fields')
+        for field,rule in props.items():
+            v=item[field]
+            if rule['type']=='number' and (type(v) not in (int,float) or not math.isfinite(v) or not 0<=v<=1):
+                raise InvalidResponse('Score must be finite and in [0,1]')
+            if rule['type']=='integer' and type(v) is not int:raise InvalidResponse('ID must be integer')
+            if 'enum' in rule and v not in rule['enum']:raise InvalidResponse('Invalid '+field)
+            if field=='word' and (not isinstance(v,str) or not re.fullmatch('[A-Za-z]{5}',v)):
+                raise InvalidResponse('Every word must contain exactly five English letters')
+    if kind=='evaluate' and sorted(item['id'] for item in items)!=spec['items']['properties']['id']['enum']:
+        raise InvalidResponse('Rate each candidate ID exactly once')
+    return value
 
 class HFClient:
-    """Exact-token preflight; prompt-only JSON; no answer repair or hidden calls."""
+    """Exact-token preflight and schema-constrained decoding for crossword calls."""
     def __init__(self,model,tokenizer,torch):
         self.model=model;self.tokenizer=tokenizer;self.torch=torch
 
@@ -151,13 +187,21 @@ class HFClient:
 
     def count(self,prompt):return int(self.encode(prompt)['input_ids'].shape[1])
 
-    def generate(self,prompt,seed,limit,temperature):
+    def generate(self,prompt,seed,limit,temperature,schema=None):
         torch=self.torch
         inputs=self.encode(prompt).to(self.model.device);n=int(inputs['input_ids'].shape[1])
         torch.manual_seed(seed);torch.cuda.manual_seed_all(seed)
         kwargs=dict(max_new_tokens=limit,do_sample=temperature>0,pad_token_id=self.tokenizer.pad_token_id,
                     eos_token_id=self.tokenizer.eos_token_id)
         if temperature>0:kwargs.update(temperature=temperature,top_k=0,top_p=1.)
+        if schema is not None:
+            from lmformatenforcer import JsonSchemaParser
+            from lmformatenforcer.integrations.transformers import (
+                build_token_enforcer_tokenizer_data, build_transformers_prefix_allowed_tokens_fn)
+            if not hasattr(self,'_constraint_tokenizer'):
+                self._constraint_tokenizer=build_token_enforcer_tokenizer_data(self.tokenizer)
+            kwargs['prefix_allowed_tokens_fn']=build_transformers_prefix_allowed_tokens_fn(
+                self._constraint_tokenizer,JsonSchemaParser(schema))
         torch.cuda.synchronize();start=time.perf_counter()
         with torch.inference_mode():output=self.model.generate(**inputs,**kwargs)
         torch.cuda.synchronize();elapsed=time.perf_counter()-start
@@ -173,14 +217,26 @@ class Session:
         self.qid=qid;self.seed=seed
         self.calls=0;self.tokens=0;self.input_tokens=0;self.output_tokens=0;self.seconds=0.;self.parse_failures=0;self.truncated=0
 
-    def ask(self,prompt,kind,limit):
+    def ask(self,prompt,kind,limit,schema=None):
+        schema=schema or response_schema(kind,self.cfg['branch_factor'])
+        feedback=''
+        for attempt in range(self.cfg.get('json_retries',2)+1):
+            try:return self._ask_once(prompt+feedback,kind,limit,schema)
+            except InvalidResponse as exc:
+                if attempt==self.cfg.get('json_retries',2):raise
+                feedback=('\nPrevious response failed validation: '+str(exc)+
+                          '\nReturn one complete JSON object matching the requested fields. '
+                          'Every word must contain exactly five letters. No markdown or conversation. '
+                          f'Retry {attempt+1}.')
+
+    def _ask_once(self,prompt,kind,limit,schema):
         n=self.client.count(prompt)
         # Reserve full completion allowance before inference; never overspend silently.
         if self.calls>=self.cfg['max_calls'] or self.tokens+n+limit>self.cfg['max_tokens']:
             raise BudgetStop('token_or_call_budget')
         if n+limit>self.cfg['num_ctx']:raise BudgetStop('context_limit')
         seed=int(digest([self.qid,self.seed,prompt,kind])[:8],16) % (2**31)
-        request=dict(prompt=prompt,kind=kind,seed=seed,limit=limit,temperature=self.cfg['temperature'])
+        request=dict(prompt=prompt,kind=kind,seed=seed,limit=limit,temperature=self.cfg['temperature'],schema=schema)
         path=self.root/f'{self.calls:03d}.json'
         if path.exists():
             record=json.loads(path.read_text())
@@ -191,7 +247,7 @@ class Session:
             if pending.exists():
                 raise RuntimeError('An earlier inference was interrupted or failed; its cost is unknown. Start a fresh output trial.')
             pending.write_text('Inference started; no saved response yet.',encoding='utf-8')
-            response=self.client.generate(prompt,seed,limit,self.cfg['temperature'])
+            response=self.client.generate(prompt,seed,limit,self.cfg['temperature'],schema=schema)
             write_json(path,dict(request=request,response=response))
             pending.unlink()
         if response['input_tokens']!=n or response['output_tokens']>limit:raise ValueError('Backend accounting mismatch')
@@ -199,12 +255,12 @@ class Session:
         self.input_tokens+=n;self.output_tokens+=response['output_tokens']
         self.truncated+=bool(response['truncated'])
         try:
+            if response['truncated']:raise InvalidResponse('Truncated JSON response')
             value=json.loads(response['text'])
-            if not isinstance(value,dict):raise ValueError('Not an object')
-            return value
-        except (ValueError,TypeError):
+            return validate_response(value,kind,schema)
+        except (ValueError,TypeError) as exc:
             self.parse_failures+=1
-            return {}
+            raise InvalidResponse(str(exc)) from exc
 
 def solve(clues,method,session,cfg):
     if len(clues)!=10 or method not in METHODS:raise ValueError('Invalid task or method')
@@ -222,7 +278,9 @@ def solve(clues,method,session,cfg):
         prompt=(f'Propose up to {cfg["branch_factor"]} distinct promising next word placements for this grid. '
                 'Each answer is exactly five English letters. You may revise an existing answer; '
                 'conflicting crossing assignments will be cleared. Prefer matching known letters. '
-                'Return {"moves":[{"slot":"h1","word":"APPLE","confidence":0.7}]} .\n'+render(clues,node.words))
+                'Return only JSON with key moves: a list of objects with slot (h1-h5 or v1-v5), '
+                'word (exactly five A-Z letters), and confidence (a number from 0 to 1). '
+                'Answer the actual clues below.\n'+render(clues,node.words))
         try:
             proposed=session.ask(prompt,'generate',cfg['generation_tokens'])
             children=[]
@@ -244,9 +302,13 @@ def solve(clues,method,session,cfg):
                     'Use scores in [0,1]. An impossible remaining clue should make P very low. '
                     'Return {"ratings":[{"id":0,"q":0.7,"p":0.5}]}, one rating per candidate.\n'+
                     '\n\n'.join(f'Candidate {i}\n{render(clues,c.words)}' for i,c in enumerate(children)))
-            evaluated=session.ask(prompt,'evaluate',cfg['evaluation_tokens'])
+            evaluated=session.ask(prompt,'evaluate',cfg['evaluation_tokens'],response_schema('evaluate',len(children)))
         except BudgetStop as exc:
             reason=str(exc);break
+        except InvalidResponse as exc:
+            reason='invalid_model_response'
+            trace.append(dict(expansion=expanded,error=str(exc),calls=session.calls,tokens=session.tokens))
+            break
         ratings=evaluated.get('ratings',[])
         if not isinstance(ratings,list):ratings=[]
         by_id={}
@@ -337,7 +399,7 @@ def run(puzzles,client,cfg,runtime,output,seed=42):
                     result.update(question_id=puzzle['id'],method=method,seed=seed,solution=puzzle['solution'])
                     write_json(root/'traces'/f'{puzzle["id"]}_{method}.json',trace)
                     write_json(path,result)
-                print(f'  {method:22s} words={result["word_accuracy"]:.0%} letters={result["letter_accuracy"]:.0%} solved={result["solved"]} calls={result["calls"]} tokens={result["total_tokens"]}',flush=True)
+                print(f'  {method:22s} words={result["word_accuracy"]:.0%} letters={result["letter_accuracy"]:.0%} solved={result["solved"]} calls={result["calls"]} tokens={result["total_tokens"]} stop={result["stop_reason"]} invalid_responses={result["parse_failures"]}',flush=True)
                 report(root)
     finally:
         lock.unlink(missing_ok=True)
