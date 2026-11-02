@@ -1,0 +1,27 @@
+PUZZLE 1/10 crossword-0030
+  tot_dfs                words=10% letters=24% solved=False calls=121 tokens=67096 stop=expansion_budget invalid_responses=1
+  heuristic_bestfirst    words=10% letters=24% solved=False calls=119 tokens=66572 stop=expansion_budget invalid_responses=0
+
+PUZZLE 2/10 crossword-0081
+  heuristic_bestfirst    words=10% letters=20% solved=False calls=116 tokens=56313 stop=expansion_budget invalid_responses=0
+  tot_dfs                words=0% letters=8% solved=False calls=109 tokens=47066 stop=expansion_budget invalid_responses=0
+
+PUZZLE 3/10 crossword-0128
+  tot_dfs                words=0% letters=20% solved=False calls=113 tokens=52884 stop=expansion_budget invalid_responses=1
+  heuristic_bestfirst    words=20% letters=48% solved=False calls=113 tokens=52394 stop=expansion_budget invalid_responses=1
+
+PUZZLE 4/10 crossword-0131
+  heuristic_bestfirst    words=30% letters=68% solved=False calls=119 tokens=62349 stop=expansion_budget invalid_responses=0
+  tot_dfs                words=20% letters=40% solved=False calls=119 tokens=58578 stop=expansion_budget invalid_responses=0
+
+PUZZLE 5/10 crossword-0026
+  tot_dfs                words=0% letters=24% solved=False calls=119 tokens=57739 stop=expansion_budget invalid_responses=0
+  heuristic_bestfirst    words=10% letters=28% solved=False calls=120 tokens=61560 stop=expansion_budget invalid_responses=0
+
+PUZZLE 6/10 crossword-0057
+  heuristic_bestfirst    words=0% letters=12% solved=False calls=119 tokens=62196 stop=expansion_budget invalid_responses=0
+  tot_dfs                words=10% letters=28% solved=False calls=119 tokens=59326 stop=expansion_budget invalid_responses=0
+
+PUZZLE 7/10 crossword-0142
+  tot_dfs                words=10% letters=32% solved=False calls=116 tokens=57415 stop=expansion_budget invalid_responses=0
+  heuristic_bestfirst    words=10% letters=44% solved=False calls=118 tokens=58057 stop=expansion_budget invalid_responses=0
