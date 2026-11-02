@@ -1,0 +1,28 @@
+{
+  "archive": "kaggle/results_v3_20261029_212510.zip",
+  "original_outcomes": {
+    "correct": 4,
+    "missing": 13,
+    "wrong": 3
+  },
+  "original_statuses": {
+    "done": 7,
+    "model_error": 11,
+    "exhausted": 1,
+    "depth_limit": 1
+  },
+  "rejection_events": {
+    "use def successors(state): followed by one return expression": 12,
+    "only arithmetic helper calls are supported": 10,
+    "'apples_today'": 3,
+    "unsupported syntax: BitOr": 6,
+    "state must have fixed keys and finite numeric values": 1,
+    "'value'": 1
+  },
+  "final_model_replay_outcomes": {
+    "correct": 9,
+    "wrong": 6,
+    "missing": 5
+  },
+  "note": "Offline replay of archived final code only; not a new Qwen benchmark."
+}

@@ -1,0 +1,222 @@
+[
+  {
+    "source_id": "gsm8k:train:3449",
+    "original_outcome": "correct",
+    "original_status": "done",
+    "original_error": null,
+    "replay_outcome": "correct",
+    "replay_answer": 3000,
+    "replay_status": "done",
+    "replay_error": null,
+    "local_expansions": 3
+  },
+  {
+    "source_id": "gsm8k:train:4415",
+    "original_outcome": "missing",
+    "original_status": "model_error",
+    "original_error": "use def successors(state): followed by one return expression",
+    "replay_outcome": "correct",
+    "replay_answer": 20.0,
+    "replay_status": "done",
+    "replay_error": null,
+    "local_expansions": 3
+  },
+  {
+    "source_id": "gsm8k:train:1493",
+    "original_outcome": "missing",
+    "original_status": "model_error",
+    "original_error": "only arithmetic helper calls are supported",
+    "replay_outcome": "wrong",
+    "replay_answer": 3,
+    "replay_status": "done",
+    "replay_error": null,
+    "local_expansions": 3
+  },
+  {
+    "source_id": "gsm8k:train:3318",
+    "original_outcome": "missing",
+    "original_status": "model_error",
+    "original_error": "'apples_today'",
+    "replay_outcome": "missing",
+    "replay_answer": null,
+    "replay_status": "model_error",
+    "replay_error": "'apples_today'",
+    "local_expansions": null
+  },
+  {
+    "source_id": "gsm8k:train:2712",
+    "original_outcome": "correct",
+    "original_status": "done",
+    "original_error": null,
+    "replay_outcome": "correct",
+    "replay_answer": 100,
+    "replay_status": "done",
+    "replay_error": null,
+    "local_expansions": 5
+  },
+  {
+    "source_id": "gsm8k:train:6365",
+    "original_outcome": "missing",
+    "original_status": "model_error",
+    "original_error": "unsupported syntax: BitOr",
+    "replay_outcome": "correct",
+    "replay_answer": 4,
+    "replay_status": "done",
+    "replay_error": null,
+    "local_expansions": 1
+  },
+  {
+    "source_id": "gsm8k:train:7466",
+    "original_outcome": "wrong",
+    "original_status": "done",
+    "original_error": null,
+    "replay_outcome": "wrong",
+    "replay_answer": 0,
+    "replay_status": "done",
+    "replay_error": null,
+    "local_expansions": 3
+  },
+  {
+    "source_id": "gsm8k:train:5736",
+    "original_outcome": "correct",
+    "original_status": "done",
+    "original_error": null,
+    "replay_outcome": "correct",
+    "replay_answer": 22,
+    "replay_status": "done",
+    "replay_error": null,
+    "local_expansions": 2
+  },
+  {
+    "source_id": "gsm8k:train:1743",
+    "original_outcome": "missing",
+    "original_status": "model_error",
+    "original_error": "unsupported syntax: BitOr",
+    "replay_outcome": "wrong",
+    "replay_answer": 0,
+    "replay_status": "done",
+    "replay_error": null,
+    "local_expansions": 1
+  },
+  {
+    "source_id": "gsm8k:train:7043",
+    "original_outcome": "missing",
+    "original_status": "exhausted",
+    "original_error": null,
+    "replay_outcome": "missing",
+    "replay_answer": null,
+    "replay_status": "exhausted",
+    "replay_error": null,
+    "local_expansions": 1
+  },
+  {
+    "source_id": "gsm8k:train:2967",
+    "original_outcome": "missing",
+    "original_status": "model_error",
+    "original_error": "use def successors(state): followed by one return expression",
+    "replay_outcome": "missing",
+    "replay_answer": null,
+    "replay_status": "exhausted",
+    "replay_error": null,
+    "local_expansions": 2
+  },
+  {
+    "source_id": "gsm8k:train:3083",
+    "original_outcome": "missing",
+    "original_status": "model_error",
+    "original_error": "use def successors(state): followed by one return expression",
+    "replay_outcome": "wrong",
+    "replay_answer": 1400,
+    "replay_status": "done",
+    "replay_error": null,
+    "local_expansions": 1
+  },
+  {
+    "source_id": "gsm8k:train:4808",
+    "original_outcome": "wrong",
+    "original_status": "done",
+    "original_error": null,
+    "replay_outcome": "wrong",
+    "replay_answer": 64.5,
+    "replay_status": "done",
+    "replay_error": null,
+    "local_expansions": 2
+  },
+  {
+    "source_id": "gsm8k:train:6906",
+    "original_outcome": "missing",
+    "original_status": "model_error",
+    "original_error": "only arithmetic helper calls are supported",
+    "replay_outcome": "correct",
+    "replay_answer": 1390,
+    "replay_status": "done",
+    "replay_error": null,
+    "local_expansions": 3
+  },
+  {
+    "source_id": "gsm8k:train:3099",
+    "original_outcome": "missing",
+    "original_status": "depth_limit",
+    "original_error": null,
+    "replay_outcome": "missing",
+    "replay_answer": null,
+    "replay_status": "depth_limit",
+    "replay_error": null,
+    "local_expansions": 10
+  },
+  {
+    "source_id": "gsm8k:train:7417",
+    "original_outcome": "missing",
+    "original_status": "model_error",
+    "original_error": "state must have fixed keys and finite numeric values",
+    "replay_outcome": "correct",
+    "replay_answer": 170,
+    "replay_status": "done",
+    "replay_error": null,
+    "local_expansions": 1
+  },
+  {
+    "source_id": "gsm8k:train:851",
+    "original_outcome": "missing",
+    "original_status": "model_error",
+    "original_error": "only arithmetic helper calls are supported",
+    "replay_outcome": "missing",
+    "replay_answer": null,
+    "replay_status": "model_error",
+    "replay_error": "'value'",
+    "local_expansions": null
+  },
+  {
+    "source_id": "gsm8k:train:6113",
+    "original_outcome": "wrong",
+    "original_status": "done",
+    "original_error": null,
+    "replay_outcome": "wrong",
+    "replay_answer": 10,
+    "replay_status": "done",
+    "replay_error": null,
+    "local_expansions": 2
+  },
+  {
+    "source_id": "gsm8k:train:4127",
+    "original_outcome": "missing",
+    "original_status": "model_error",
+    "original_error": "use def successors(state): followed by one return expression",
+    "replay_outcome": "correct",
+    "replay_answer": 120,
+    "replay_status": "done",
+    "replay_error": null,
+    "local_expansions": 1
+  },
+  {
+    "source_id": "gsm8k:train:3637",
+    "original_outcome": "correct",
+    "original_status": "done",
+    "original_error": null,
+    "replay_outcome": "correct",
+    "replay_answer": 6,
+    "replay_status": "done",
+    "replay_error": null,
+    "local_expansions": 6
+  }
+]

@@ -1,0 +1,80 @@
+{"problem_id":0,"method":"Standard CoT (1-Call)","ans":21.0,"expected":21,"correct":true,"calls":1,"tokens":231,"sec":98.693154335}
+{"problem_id":0,"method":"Step-wise Greedy CoT","ans":null,"expected":21,"correct":false,"calls":2,"tokens":304,"sec":1.5901856422}
+{"problem_id":0,"method":"Tree-of-Thoughts (LLM-Judge)","ans":21.0,"expected":21,"correct":true,"calls":51,"tokens":10030,"sec":141.9961249828}
+{"problem_id":0,"method":"Cost-Aware Priority Search","ans":null,"expected":21,"correct":false,"calls":6,"tokens":1069,"sec":9.0032427311}
+{"problem_id":0,"method":"Ablation: Quality-Only (w3=0)","ans":null,"expected":21,"correct":false,"calls":6,"tokens":1069,"sec":8.7669916153}
+{"problem_id":1,"method":"Standard CoT (1-Call)","ans":18.0,"expected":18,"correct":true,"calls":1,"tokens":248,"sec":6.4904742241}
+{"problem_id":1,"method":"Step-wise Greedy CoT","ans":null,"expected":18,"correct":false,"calls":2,"tokens":302,"sec":2.024711132}
+{"problem_id":1,"method":"Tree-of-Thoughts (LLM-Judge)","ans":18.0,"expected":18,"correct":true,"calls":24,"tokens":5102,"sec":79.3744356632}
+{"problem_id":1,"method":"Cost-Aware Priority Search","ans":null,"expected":18,"correct":false,"calls":6,"tokens":1078,"sec":8.9092347622}
+{"problem_id":1,"method":"Ablation: Quality-Only (w3=0)","ans":null,"expected":18,"correct":false,"calls":6,"tokens":1071,"sec":8.4717793465}
+{"problem_id":2,"method":"Standard CoT (1-Call)","ans":26.0,"expected":26,"correct":true,"calls":1,"tokens":264,"sec":7.0762221813}
+{"problem_id":2,"method":"Step-wise Greedy CoT","ans":null,"expected":26,"correct":false,"calls":2,"tokens":297,"sec":1.9826583862}
+{"problem_id":2,"method":"Tree-of-Thoughts (LLM-Judge)","ans":26.0,"expected":26,"correct":true,"calls":41,"tokens":8693,"sec":160.2055399418}
+{"problem_id":2,"method":"Cost-Aware Priority Search","ans":null,"expected":26,"correct":false,"calls":8,"tokens":1426,"sec":10.9748258591}
+{"problem_id":2,"method":"Ablation: Quality-Only (w3=0)","ans":null,"expected":26,"correct":false,"calls":6,"tokens":1046,"sec":7.9902336597}
+{"problem_id":3,"method":"Standard CoT (1-Call)","ans":102.0,"expected":102,"correct":true,"calls":1,"tokens":294,"sec":8.1636452675}
+{"problem_id":3,"method":"Step-wise Greedy CoT","ans":null,"expected":102,"correct":false,"calls":2,"tokens":313,"sec":2.2394163609}
+{"problem_id":3,"method":"Tree-of-Thoughts (LLM-Judge)","ans":24.0,"expected":102,"correct":false,"calls":8,"tokens":1436,"sec":20.0590312481}
+{"problem_id":3,"method":"Cost-Aware Priority Search","ans":null,"expected":102,"correct":false,"calls":6,"tokens":1104,"sec":9.2082264423}
+{"problem_id":3,"method":"Ablation: Quality-Only (w3=0)","ans":null,"expected":102,"correct":false,"calls":6,"tokens":1121,"sec":9.7489771843}
+{"problem_id":4,"method":"Standard CoT (1-Call)","ans":90.0,"expected":90,"correct":true,"calls":1,"tokens":273,"sec":7.4773244858}
+{"problem_id":4,"method":"Step-wise Greedy CoT","ans":90.0,"expected":90,"correct":true,"calls":1,"tokens":141,"sec":0.8718512058}
+{"problem_id":4,"method":"Tree-of-Thoughts (LLM-Judge)","ans":90.0,"expected":90,"correct":true,"calls":8,"tokens":1624,"sec":31.6131243706}
+{"problem_id":4,"method":"Cost-Aware Priority Search","ans":6.0,"expected":90,"correct":false,"calls":6,"tokens":1109,"sec":10.1264894009}
+{"problem_id":4,"method":"Ablation: Quality-Only (w3=0)","ans":6.0,"expected":90,"correct":false,"calls":6,"tokens":1109,"sec":9.9245319366}
+{"problem_id":5,"method":"Standard CoT (1-Call)","ans":115.0,"expected":115,"correct":true,"calls":1,"tokens":289,"sec":7.8777558804}
+{"problem_id":5,"method":"Step-wise Greedy CoT","ans":null,"expected":115,"correct":false,"calls":2,"tokens":309,"sec":2.0636560917}
+{"problem_id":5,"method":"Tree-of-Thoughts (LLM-Judge)","ans":115.0,"expected":115,"correct":true,"calls":8,"tokens":1774,"sec":33.9579944611}
+{"problem_id":5,"method":"Cost-Aware Priority Search","ans":null,"expected":115,"correct":false,"calls":8,"tokens":1480,"sec":11.3551168442}
+{"problem_id":5,"method":"Ablation: Quality-Only (w3=0)","ans":null,"expected":115,"correct":false,"calls":6,"tokens":1095,"sec":8.5464880466}
+{"problem_id":6,"method":"Standard CoT (1-Call)","ans":117.0,"expected":117,"correct":true,"calls":1,"tokens":319,"sec":9.0492062569}
+{"problem_id":6,"method":"Step-wise Greedy CoT","ans":null,"expected":117,"correct":false,"calls":3,"tokens":535,"sec":4.4707446098}
+{"problem_id":6,"method":"Tree-of-Thoughts (LLM-Judge)","ans":117.0,"expected":117,"correct":true,"calls":20,"tokens":4154,"sec":68.923396349}
+{"problem_id":6,"method":"Cost-Aware Priority Search","ans":null,"expected":117,"correct":false,"calls":6,"tokens":1130,"sec":9.3489780426}
+{"problem_id":6,"method":"Ablation: Quality-Only (w3=0)","ans":null,"expected":117,"correct":false,"calls":10,"tokens":2006,"sec":16.1568062305}
+{"problem_id":7,"method":"Standard CoT (1-Call)","ans":28.0,"expected":28,"correct":true,"calls":1,"tokens":251,"sec":6.2493462563}
+{"problem_id":7,"method":"Step-wise Greedy CoT","ans":null,"expected":28,"correct":false,"calls":2,"tokens":319,"sec":2.2262117863}
+{"problem_id":7,"method":"Tree-of-Thoughts (LLM-Judge)","ans":28.0,"expected":28,"correct":true,"calls":22,"tokens":4829,"sec":82.3811132908}
+{"problem_id":7,"method":"Cost-Aware Priority Search","ans":null,"expected":28,"correct":false,"calls":6,"tokens":1141,"sec":9.8808190823}
+{"problem_id":7,"method":"Ablation: Quality-Only (w3=0)","ans":null,"expected":28,"correct":false,"calls":6,"tokens":1134,"sec":9.5330779552}
+{"problem_id":8,"method":"Standard CoT (1-Call)","ans":95.0,"expected":95,"correct":true,"calls":1,"tokens":293,"sec":8.1015605927}
+{"problem_id":8,"method":"Step-wise Greedy CoT","ans":null,"expected":95,"correct":false,"calls":2,"tokens":314,"sec":2.2987339497}
+{"problem_id":8,"method":"Tree-of-Thoughts (LLM-Judge)","ans":40.0,"expected":95,"correct":false,"calls":30,"tokens":6220,"sec":105.2446899414}
+{"problem_id":8,"method":"Cost-Aware Priority Search","ans":null,"expected":95,"correct":false,"calls":6,"tokens":1096,"sec":9.0806005001}
+{"problem_id":8,"method":"Ablation: Quality-Only (w3=0)","ans":null,"expected":95,"correct":false,"calls":6,"tokens":1096,"sec":8.8323068619}
+{"problem_id":9,"method":"Standard CoT (1-Call)","ans":120.0,"expected":120,"correct":true,"calls":1,"tokens":296,"sec":8.1055614948}
+{"problem_id":9,"method":"Step-wise Greedy CoT","ans":null,"expected":120,"correct":false,"calls":2,"tokens":319,"sec":2.2255105972}
+{"problem_id":9,"method":"Tree-of-Thoughts (LLM-Judge)","ans":90.0,"expected":120,"correct":false,"calls":24,"tokens":4950,"sec":77.1974670887}
+{"problem_id":9,"method":"Cost-Aware Priority Search","ans":null,"expected":120,"correct":false,"calls":6,"tokens":1122,"sec":9.0959317684}
+{"problem_id":9,"method":"Ablation: Quality-Only (w3=0)","ans":null,"expected":120,"correct":false,"calls":6,"tokens":1118,"sec":8.8325448036}
+{"problem_id":10,"method":"Standard CoT (1-Call)","ans":14.0,"expected":14,"correct":true,"calls":1,"tokens":396,"sec":10.8013181686}
+{"problem_id":10,"method":"Step-wise Greedy CoT","ans":null,"expected":14,"correct":false,"calls":2,"tokens":397,"sec":2.6147572994}
+{"problem_id":10,"method":"Tree-of-Thoughts (LLM-Judge)","ans":12.0,"expected":14,"correct":false,"calls":22,"tokens":5701,"sec":82.637414217}
+{"problem_id":10,"method":"Cost-Aware Priority Search","ans":null,"expected":14,"correct":false,"calls":6,"tokens":1330,"sec":9.4431402683}
+{"problem_id":10,"method":"Ablation: Quality-Only (w3=0)","ans":null,"expected":14,"correct":false,"calls":6,"tokens":1330,"sec":9.3367989063}
+{"problem_id":11,"method":"Standard CoT (1-Call)","ans":6.0,"expected":6,"correct":true,"calls":1,"tokens":337,"sec":9.1860492229}
+{"problem_id":11,"method":"Step-wise Greedy CoT","ans":2.0,"expected":6,"correct":false,"calls":3,"tokens":569,"sec":4.4389314651}
+{"problem_id":11,"method":"Tree-of-Thoughts (LLM-Judge)","ans":6.0,"expected":6,"correct":true,"calls":20,"tokens":5995,"sec":99.0604250431}
+{"problem_id":11,"method":"Cost-Aware Priority Search","ans":6.0,"expected":6,"correct":true,"calls":12,"tokens":3389,"sec":28.1964831352}
+{"problem_id":11,"method":"Ablation: Quality-Only (w3=0)","ans":6.0,"expected":6,"correct":true,"calls":22,"tokens":6336,"sec":47.7256760597}
+{"problem_id":12,"method":"Standard CoT (1-Call)","ans":50.0,"expected":50,"correct":true,"calls":1,"tokens":414,"sec":12.0570886135}
+{"problem_id":12,"method":"Step-wise Greedy CoT","ans":null,"expected":50,"correct":false,"calls":2,"tokens":364,"sec":2.1470518112}
+{"problem_id":12,"method":"Tree-of-Thoughts (LLM-Judge)","ans":50.0,"expected":50,"correct":true,"calls":16,"tokens":5052,"sec":94.2285006046}
+{"problem_id":12,"method":"Cost-Aware Priority Search","ans":null,"expected":50,"correct":false,"calls":6,"tokens":1287,"sec":10.063434124}
+{"problem_id":12,"method":"Ablation: Quality-Only (w3=0)","ans":2.0,"expected":50,"correct":false,"calls":14,"tokens":3215,"sec":23.0163581371}
+{"problem_id":13,"method":"Standard CoT (1-Call)","ans":31.0,"expected":31,"correct":true,"calls":1,"tokens":571,"sec":18.649089098}
+{"problem_id":13,"method":"Step-wise Greedy CoT","ans":null,"expected":31,"correct":false,"calls":2,"tokens":347,"sec":2.1599712372}
+{"problem_id":13,"method":"Tree-of-Thoughts (LLM-Judge)","ans":4.0,"expected":31,"correct":false,"calls":41,"tokens":13675,"sec":225.8318009377}
+{"problem_id":13,"method":"Cost-Aware Priority Search","ans":4.0,"expected":31,"correct":false,"calls":24,"tokens":6446,"sec":50.1476752758}
+{"problem_id":13,"method":"Ablation: Quality-Only (w3=0)","ans":null,"expected":31,"correct":false,"calls":6,"tokens":1380,"sec":15.3496220112}
+{"problem_id":14,"method":"Standard CoT (1-Call)","ans":300.0,"expected":300,"correct":true,"calls":1,"tokens":500,"sec":16.0777368546}
+{"problem_id":14,"method":"Step-wise Greedy CoT","ans":4.0,"expected":300,"correct":false,"calls":8,"tokens":1915,"sec":12.9162127972}
+{"problem_id":14,"method":"Tree-of-Thoughts (LLM-Judge)","ans":210.0,"expected":300,"correct":false,"calls":22,"tokens":6730,"sec":130.533198595}
+{"problem_id":14,"method":"Cost-Aware Priority Search","ans":4.0,"expected":300,"correct":false,"calls":10,"tokens":2115,"sec":20.5521197319}
+{"problem_id":14,"method":"Ablation: Quality-Only (w3=0)","ans":4.0,"expected":300,"correct":false,"calls":8,"tokens":1748,"sec":19.0494301319}
+{"problem_id":15,"method":"Standard CoT (1-Call)","ans":16.0,"expected":16,"correct":true,"calls":1,"tokens":597,"sec":20.7362749577}
+{"problem_id":15,"method":"Step-wise Greedy CoT","ans":15.0,"expected":16,"correct":false,"calls":6,"tokens":1502,"sec":10.1079590321}
+{"problem_id":15,"method":"Tree-of-Thoughts (LLM-Judge)","ans":2.0,"expected":16,"correct":false,"calls":26,"tokens":7541,"sec":118.5029778481}
+{"problem_id":15,"method":"Cost-Aware Priority Search","ans":null,"expected":16,"correct":false,"calls":20,"tokens":4704,"sec":47.9749684334}
+{"problem_id":15,"method":"Ablation: Quality-Only (w3=0)","ans":510.0,"expected":16,"correct":false,"calls":26,"tokens":8245,"sec":75.9299840927}
