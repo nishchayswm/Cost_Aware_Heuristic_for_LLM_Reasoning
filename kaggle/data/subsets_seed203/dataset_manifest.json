@@ -1,0 +1,42 @@
+{
+  "selection_seed": 203,
+  "sources": {
+    "gsm8k_train": {
+      "url": "https://raw.githubusercontent.com/openai/grade-school-math/master/grade_school_math/data/train.jsonl",
+      "dataset": "gsm8k",
+      "source_split": "train",
+      "format": "jsonl",
+      "count": 7473,
+      "reference": "https://arxiv.org/abs/2110.14168",
+      "license": "MIT (see upstream repository)",
+      "sha256": "17f347dc51477c50d4efb83959dbb7c56297aba886e5544ee2aaed3024813465",
+      "rows": 7473
+    },
+    "gsm8k_test": {
+      "url": "https://raw.githubusercontent.com/openai/grade-school-math/master/grade_school_math/data/test.jsonl",
+      "dataset": "gsm8k",
+      "source_split": "test",
+      "format": "jsonl",
+      "count": 1319,
+      "reference": "https://arxiv.org/abs/2110.14168",
+      "license": "MIT (see upstream repository)",
+      "sha256": "3730d312f6e3440559ace48831e51066acaca737f6eabec99bccb9e4b3c39d14",
+      "rows": 1319
+    },
+    "svamp": {
+      "url": "https://raw.githubusercontent.com/arkilpatel/SVAMP/main/SVAMP.json",
+      "dataset": "svamp",
+      "source_split": "challenge",
+      "format": "json",
+      "count": 1000,
+      "reference": "https://arxiv.org/abs/2103.07191",
+      "license": "MIT (see upstream repository)",
+      "sha256": "5be77703a6d891ae476d7c082787ad361392aa02453b132516cdd5f4e7934e3e",
+      "rows": 1000
+    }
+  },
+  "sampling": "SHA256 rank of selection seed and source ID; exact question deduplication",
+  "development": "30 GSM8K train; excludes all exact GSM8K test matches",
+  "evaluation": "100 GSM8K test + 50 SVAMP challenge; no development overlap",
+  "pilot": "first 20 selected development questions; not final evaluation"
+}

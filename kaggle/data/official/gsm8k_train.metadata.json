@@ -1,0 +1,11 @@
+{
+  "url": "https://raw.githubusercontent.com/openai/grade-school-math/master/grade_school_math/data/train.jsonl",
+  "dataset": "gsm8k",
+  "source_split": "train",
+  "format": "jsonl",
+  "count": 7473,
+  "reference": "https://arxiv.org/abs/2110.14168",
+  "license": "MIT (see upstream repository)",
+  "sha256": "17f347dc51477c50d4efb83959dbb7c56297aba886e5544ee2aaed3024813465",
+  "rows": 7473
+}

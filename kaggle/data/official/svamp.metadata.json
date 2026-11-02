@@ -1,0 +1,11 @@
+{
+  "url": "https://raw.githubusercontent.com/arkilpatel/SVAMP/main/SVAMP.json",
+  "dataset": "svamp",
+  "source_split": "challenge",
+  "format": "json",
+  "count": 1000,
+  "reference": "https://arxiv.org/abs/2103.07191",
+  "license": "MIT (see upstream repository)",
+  "sha256": "5be77703a6d891ae476d7c082787ad361392aa02453b132516cdd5f4e7934e3e",
+  "rows": 1000
+}

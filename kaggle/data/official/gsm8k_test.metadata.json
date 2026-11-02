@@ -1,0 +1,11 @@
+{
+  "url": "https://raw.githubusercontent.com/openai/grade-school-math/master/grade_school_math/data/test.jsonl",
+  "dataset": "gsm8k",
+  "source_split": "test",
+  "format": "jsonl",
+  "count": 1319,
+  "reference": "https://arxiv.org/abs/2110.14168",
+  "license": "MIT (see upstream repository)",
+  "sha256": "3730d312f6e3440559ace48831e51066acaca737f6eabec99bccb9e4b3c39d14",
+  "rows": 1319
+}
