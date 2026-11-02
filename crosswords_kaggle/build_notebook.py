@@ -18,10 +18,10 @@ cells=[]
 def md(source):cells.append(dict(cell_type='markdown',metadata={},source=textwrap.dedent(source).strip()+'\n'))
 def code(source):cells.append(dict(cell_type='code',metadata={},source=textwrap.dedent(source).strip()+'\n',outputs=[],execution_count=None))
 
-md('''# 50 Mini Crosswords: Your Heuristic vs ToT-style DFS
+md('''# 10 Mini Crosswords: Your Heuristic vs ToT-style DFS
 Self-contained Kaggle notebook. Enable **GPU** and **Internet**, then run the cells in order. The benchmark is disabled until you set `RUN_BENCHMARK=True`.
 
-**Exactly 50 puzzles**, sampled once from the [original ToT mini-crossword dataset](https://github.com/princeton-nlp/tree-of-thought-llm/blob/master/src/tot/data/crosswords/mini0505.json). This is a custom seeded random split, not the paper's published evaluation subset. Selected IDs and source revision are saved.
+**10 puzzles by default**, using the first ten entries of the fixed 50-puzzle pool from the [original ToT mini-crossword dataset](https://github.com/princeton-nlp/tree-of-thought-llm/blob/master/src/tot/data/crosswords/mini0505.json). Set `PUZZLE_LIMIT` before running to select a larger prefix. Both methods use identical puzzles and budgets. This is a custom seeded subset; selected IDs and source revision are saved.
 
 Two methods: **ToT-style DFS** and **five-factor heuristic best-first**. The [official ToT crossword implementation](https://github.com/princeton-nlp/tree-of-thought-llm/blob/master/scripts/crosswords/search_crosswords-dfs.ipynb) uses DFS. Our baseline adapts it to a local model and a shared engine; it is not an exact reproduction or a claim of current SOTA.
 
@@ -36,11 +36,12 @@ subprocess.check_call([sys.executable,'-m','pip','install','-q',
 ''')
 code('''from pathlib import Path
 import base64, hashlib, io, json, os, zipfile
-PROJECT=Path('/kaggle/working/crosswords50_schema_v2')
+PROJECT=Path('/kaggle/working/crosswords10_schema_v3')
 PROJECT.mkdir(parents=True,exist_ok=True)
 # Preserve the original selection and model pin when upgrading an existing session.
 import shutil
-previous=Path('/kaggle/working/crosswords50')
+previous=Path('/kaggle/working/crosswords50_schema_v2')
+if not (previous/'data').exists():previous=Path('/kaggle/working/crosswords50')
 if (previous/'data').exists() and not (PROJECT/'data').exists():
     shutil.copytree(previous/'data',PROJECT/'data')
 if (previous/'model_pin.json').exists() and not (PROJECT/'model_pin.json').exists():
@@ -59,14 +60,20 @@ os.chdir(PROJECT)
 if str(PROJECT) not in sys.path:sys.path.insert(0,str(PROJECT))
 print('Project:',PROJECT)
 ''')
-md('''## 1. Check code and prepare the 50-puzzle dataset
+md('''## 1. Check code and select the fixed puzzle subset
 The tests below make no network/model calls. Dataset preparation downloads the original source file and license; it does not run inference. Selection seed is separate from the LLM trial seed. Keep selected puzzles and heuristic settings fixed throughout evaluation.''')
 code('''subprocess.run([sys.executable,'-m','unittest','test_crossword_bench','-q'],check=True)
 sys.modules.pop('crossword_bench',None)
 import crossword_bench as bench
 SELECTION_SEED=2026
-puzzles=bench.prepare_dataset(PROJECT/'data',selection_seed=SELECTION_SEED)
-assert len(puzzles)==50
+PUZZLE_LIMIT=10
+if type(PUZZLE_LIMIT) is not int or not 1<=PUZZLE_LIMIT<=50:
+    raise ValueError('PUZZLE_LIMIT must be an integer from 1 to 50')
+pool=bench.prepare_dataset(PROJECT/'data',selection_seed=SELECTION_SEED)
+assert len(pool)==50
+puzzles=pool[:PUZZLE_LIMIT]
+bench.write_json(PROJECT/'data/selected_questions.json',
+    [{k:v for k,v in puzzle.items() if k!='solution'} for puzzle in puzzles])
 print('Selected:',len(puzzles),'puzzles')
 print('First five IDs:',[p['id'] for p in puzzles[:5]])
 print('Source metadata:',PROJECT/'data/source_manifest.json')
@@ -114,14 +121,14 @@ md('''## 3. Frozen comparison settings
 
 Both policies propose at most 3 moves and batch-evaluate their children. Revising a word removes conflicting crossing assignments. DFS orders siblings by proposed confidence; best-first ranks the global frontier by H. Both prune at the same P threshold and choose their final output by the same `coverage * Q` ranking. A filled grid is never assumed correct.
 
-Default per-method limits: **30,000 tokens, 40 calls, 20 expansions**. All generation and judging costs count. The full 50-puzzle comparison can take hours. Do not tune on these 50 test answers. See the embedded README for feature definitions and limitations.''')
+Default per-method limits: **120,000 tokens, 160 calls, 60 expansions**. Depth stays at 20, branching at 3, and frontier at 60. The larger call/token ceilings give the expansion budget room to operate; any ceiling can still stop a run first. All retries, generation and judging costs count. Ten puzzles across two methods means 20 solver runs. This is a diagnostic subset, not a final full-dataset evaluation.''')
 code('''import copy
 config=copy.deepcopy(bench.DEFAULT)
 bench.write_json(PROJECT/'config.json',config)
 print(json.dumps(config,indent=2))
 ''')
 md('''## Preflight: validate generation and evaluation before the full run
-This small synthetic check makes real model calls and saves their costs separately under `preflight/`. It checks response format and legal placements, without scoring against any evaluation answers. It must pass before the 50-puzzle run.''')
+This small synthetic check makes real model calls and saves their costs separately under `preflight/`. It checks response format and legal placements, without scoring against any evaluation answers. It must pass before the benchmark run.''')
 code('''import hashlib
 preflight_config={**config,'max_expansions':1}
 preflight_clues=['Fruit often baked in pies']*10
@@ -135,16 +142,16 @@ bench.write_json(preflight_dir/'trace.json',preflight_trace)
 PREFLIGHT_PASSED=(preflight_result['calls']>=2 and preflight_result['prediction']!='_'*25
     and preflight_result['stop_reason']!='invalid_model_response')
 print(json.dumps(preflight_result,indent=2))
-assert PREFLIGHT_PASSED,'Preflight failed: inspect the saved raw calls before running 50 puzzles.'
+assert PREFLIGHT_PASSED,'Preflight failed: inspect the saved raw calls before running the benchmark.'
 print('Preflight passed. Structured generation and evaluation produced a legal placement.')
 ''')
-md('''## 4. Run exactly 50 puzzles
-Set `RUN_BENCHMARK=True` and execute this cell. Start with trial seed 42. Additional seeds repeat the same 50 puzzles; they do not select more puzzles. Both methods run for each puzzle, with alternating order.
+md('''## 4. Run the selected puzzles (default: 10)
+Set `RUN_BENCHMARK=True` and execute this cell. Start with trial seed 42. Additional seeds repeat the same selected puzzles; they do not select more puzzles. Both methods run for each puzzle, with alternating order.
 
 Completed methods and successful calls can be resumed with identical settings. A failed/interrupted inference whose token cost is unknown blocks that trial; start a fresh output trial rather than hide that cost. After a hard session reset, a stale `run.lock` must only be removed when no run is active. Save the export ZIP before ending your session.''')
 code('''RUN_BENCHMARK=False
 TRIAL_SEEDS=[42]  # Optional later repetition: [42,43,44]
-RUN_LABEL='schema_v2'  # Use a new label for changed settings or a fresh trial.
+RUN_LABEL=f'schema_v3_n{len(puzzles)}_exp{config["max_expansions"]}'
 if RUN_BENCHMARK:
     assert globals().get('PREFLIGHT_PASSED',False),'Run the preflight cell successfully first.'
     for seed in TRIAL_SEEDS:
@@ -184,13 +191,13 @@ for directory in sorted((PROJECT/'results').glob('*')):
 md('''## 6. Download results or a checkpoint
 Run after completing or stopping the benchmark. The ZIP includes code, exact configuration, dataset provenance, selected questions and answer keys, per-problem results, summaries, raw calls, traces and plots. It excludes model weights. Also save Kaggle notebook outputs.
 
-For another session, attach your own ZIP as input and extract it under `/kaggle/working` before running setup; it restores the `crosswords50_schema_v2` directory. Resume requires the same experiment/runtime. A GPU/session interruption before a call is saved leaves unknown cost; use a fresh trial for clean cost measurement.''')
+For another session, attach your own ZIP as input and extract it under `/kaggle/working` before running setup; it restores the `crosswords10_schema_v3` directory. Resume requires the same experiment/runtime. A GPU/session interruption before a call is saved leaves unknown cost; use a fresh trial for clean cost measurement.''')
 code('''from IPython.display import FileLink
-export=Path('/kaggle/working/crosswords50_schema_v2_results.zip')
+export=Path('/kaggle/working')/f'crosswords_schema_v3_n{len(puzzles)}_exp{config["max_expansions"]}_results.zip'
 with zipfile.ZipFile(export,'w',zipfile.ZIP_DEFLATED) as archive:
     for path in PROJECT.rglob('*'):
         if path.is_file() and '__pycache__' not in path.parts and path.name!='run.lock':
-            archive.write(path,Path('crosswords50_schema_v2')/path.relative_to(PROJECT))
+            archive.write(path,Path('crosswords10_schema_v3')/path.relative_to(PROJECT))
 previous_dir=Path.cwd()
 try:
     os.chdir(export.parent)
@@ -202,6 +209,6 @@ nb=dict(nbformat=4,nbformat_minor=5,metadata={'kernelspec':{'display_name':'Pyth
 for index,cell in enumerate(cells):
     cell['id']=f'crosswords-{index:02d}'
     if cell['cell_type']=='code':compile(cell['source'],f'cell-{index}','exec')
-path=ROOT/'Crosswords50_Heuristic_vs_ToT_Kaggle.ipynb'
+path=ROOT/'Crosswords10_Heuristic_vs_ToT_Kaggle.ipynb'
 path.write_text(json.dumps(nb,indent=1)+'\n',encoding='utf-8',newline='\n')
 print('Created:',path,'; all code cells compile. No notebook cells executed.')

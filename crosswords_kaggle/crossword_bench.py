@@ -11,7 +11,7 @@ import time
 import urllib.request
 
 METHODS = ('tot_dfs', 'heuristic_bestfirst')
-DEFAULT = dict(max_tokens=30000, max_calls=40, max_expansions=20,
+DEFAULT = dict(max_tokens=120000, max_calls=160, max_expansions=60,
                max_depth=20, branch_factor=3, max_frontier=60,
                generation_tokens=350, evaluation_tokens=500,
                num_ctx=8192, temperature=0.6, prune_below=0.05, json_retries=2,
@@ -373,11 +373,12 @@ def report(root):
 
 def run(puzzles,client,cfg,runtime,output,seed=42):
     root=Path(output);root.mkdir(parents=True,exist_ok=True)
-    if len(puzzles)!=50:raise ValueError('This experiment requires exactly 50 puzzles')
-    if len({p['id'] for p in puzzles})!=50:raise ValueError('Duplicate puzzle IDs')
+    if not 1<=len(puzzles)<=50:raise ValueError('Select between 1 and 50 puzzles from the fixed pool')
+    if len({p['id'] for p in puzzles})!=len(puzzles):raise ValueError('Duplicate puzzle IDs')
     if set(cfg['weights'])!=set(DEFAULT['weights']) or not math.isclose(sum(cfg['weights'].values()),1):raise ValueError('Invalid weights')
     manifest=dict(config=cfg,runtime=runtime,seed=seed,dataset_sha256=digest(puzzles),
-                  code_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),methods=METHODS)
+                  code_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),methods=METHODS,
+                  question_ids=[p['id'] for p in puzzles],puzzle_count=len(puzzles))
     manifest=json.loads(json.dumps(manifest))
     path=root/'manifest.json'
     if path.exists() and json.loads(path.read_text())!=manifest:raise ValueError('Experiment changed: use new output directory')
@@ -386,7 +387,7 @@ def run(puzzles,client,cfg,runtime,output,seed=42):
     with lock.open('x') as handle:handle.write(str(seed))
     try:
         for index,puzzle in enumerate(puzzles):
-            print(f'\nPUZZLE {index+1}/50 {puzzle["id"]}',flush=True)
+            print(f'\nPUZZLE {index+1}/{len(puzzles)} {puzzle["id"]}',flush=True)
             order=METHODS if index%2==0 else METHODS[::-1]
             for method in order:
                 path=root/'records'/f'{puzzle["id"]}_{method}.json'

@@ -78,20 +78,24 @@ class Tests(unittest.TestCase):
 
     def test_runner_resume_and_paired_reports(self):
         with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as tmp:
-            puzzles=[dict(id=f'q{i}',clues=['clue']*10,solution='Z'*25) for i in range(50)]
+            puzzles=[dict(id=f'q{i}',clues=['clue']*10,solution='Z'*25) for i in range(10)]
             cfg={**b.DEFAULT,'max_expansions':1}
             client=FakeClient()
-            # Avoid 100 lines of mock-run output; no real inference occurs.
+            # No real inference occurs.
             with patch('builtins.print'):
                 summary=b.run(puzzles,client,cfg,{},tmp)
                 count=len(client.requests)
                 b.run(puzzles,client,cfg,{},tmp)
             self.assertEqual(count,len(client.requests))
-            self.assertTrue(all(s['n']==50 for s in summary))
+            self.assertTrue(all(s['n']==10 for s in summary))
             self.assertTrue(all('Z'*25 not in p for p in client.requests))
-            self.assertEqual(len(list((Path(tmp)/'records').glob('*.json'))),100)
+            self.assertEqual(len(list((Path(tmp)/'records').glob('*.json'))),20)
+            manifest=json.loads((Path(tmp)/'manifest.json').read_text())
+            self.assertEqual(manifest['puzzle_count'],10)
+            self.assertEqual(manifest['question_ids'],[p['id'] for p in puzzles])
             self.assertTrue((Path(tmp)/'per_question.csv').exists())
             with self.assertRaises(ValueError):b.run(puzzles,client,{**cfg,'max_tokens':999},{},tmp)
+            with self.assertRaises(ValueError):b.run(puzzles[:5],client,cfg,{},tmp)
 
     def test_heuristic_features(self):
         s=b.State(words=('APPLE',)+('',)*9,depth=1,q=.8,p=.7)
