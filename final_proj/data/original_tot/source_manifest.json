@@ -1,0 +1,11 @@
+{
+  "repository": "princeton-nlp/tree-of-thought-llm",
+  "commit": "8050e67d0e3a0fddc424d7fa5801538722a4c4cc",
+  "url": "https://raw.githubusercontent.com/princeton-nlp/tree-of-thought-llm/8050e67d0e3a0fddc424d7fa5801538722a4c4cc/src/tot/data/24/24.csv",
+  "csv_sha256": "b9f12b3e36d987a3c714c4cef17d89a137d7c59da26532fcfb93b4821d8111b5",
+  "selected_zero_based_indices": [
+    900,
+    1000
+  ],
+  "split": "official ToT evaluation range"
+}

@@ -1,0 +1,2 @@
+# Python 3.11+. No third-party Python packages required.
+# Ollama must be running separately for an actual benchmark.
