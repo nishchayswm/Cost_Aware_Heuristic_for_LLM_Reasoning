@@ -4,11 +4,10 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 e = 0.05 
 
 def R(step_json):
-    conf = step_json.get("confidence", 0.5)
-    try:
-        return max(0.0, min(1.0, float(conf)))
-    except (TypeError, ValueError):
-        return 0.5
+    # Self-reported confidence is not evidence of arithmetic validity.
+    from benchmark_engine import equation_status
+    status, _ = equation_status(step_json.get('equation', ''))
+    return 1.0 if status == 'valid' else 0.25 if status == 'missing' else 0.0
 
 def T(c_texts, g_text):
 

@@ -5,6 +5,9 @@ Ops = {
     ast.Sub : operator.sub,
     ast.Mult : operator.mul,
     ast.Div : operator.truediv,
+    ast.FloorDiv : operator.floordiv,
+    ast.Mod : operator.mod,
+    ast.Pow : operator.pow,
     ast.USub : operator.neg,
 }
 
@@ -19,11 +22,8 @@ def _eval(node):
         raise ValueError("_eval function failed!")
 
 def safe_eval(expr):
-    try:
-        tree = ast.parse(expr.strip(), mode = "eval")
-        return float(_eval(tree.body))
-    except Exception:
-        return None
+    from benchmark_engine import safe_arithmetic
+    return safe_arithmetic(expr)
 
 def check_equation(step):
     if "=" not in step:
