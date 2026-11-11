@@ -1,253 +1,196 @@
-# Final project: cost-aware heuristic search for LLM reasoning
+# Cost-Aware Heuristic for LLM Reasoning
 
-**Self-contained project. The v6 changes have offline tests and a separate live development evaluation.**
-Your earlier pilot results remain untouched in `results/gsm8k100`.
-Offline tests use synthetic fixtures and mocked model responses only. No real
-benchmark scores are supplied or implied.
+This project studies how a language model should spend its next inference call when several partial solutions are available. It implements a five-factor best-first search and measures the tradeoff between answer quality and token use. The repository runs **Game of 24** and **GSM8K** with a local Ollama model. The project report also evaluates **mini crosswords**.
 
-The main method uses incremental Tree-of-Thoughts-style node generation and
-**bounded best-first search** guided by five factors: reasoning quality, success
-confidence, depth, estimated additional token cost, and search diversity.
-This is the corrected state-selection project, not the earlier Repair-or-Explore
-action-selection experiment. It does not import code or results from outside this
-folder when running.
+## Quick start
 
-## V6: live development evaluation
+Run the commands below from the `final_proj` directory in PowerShell. You need **Python 3.11 or newer**. The benchmark uses the Python standard library, and the generated Game of 24 and GSM8K datasets are included.
 
-See [CHANGES_V6.md](CHANGES_V6.md) for the current formula and shared search fixes.
-The proposed ranking now discounts depth using success confidence, gates diversity
-by sqrt(Q*P), and includes estimated judging cost. All search methods share rubric
-consistency adjustment, continuation of sound-but-incomplete answers, and a final
-selector using sqrt(Q*P). Quality-only best-first isolates the state-ranking change.
-All search methods also receive a budgeted full-solution starting candidate and
-alternative sibling prompts. All methods generate numeric-only expressions;
-step IDs remain internal bookkeeping. The weights and global budgets remain unchanged.
+### Check the environment
 
-The current development run uses 10 fixed training-split questions with all six
-methods, stored in `results/dev_v6_10`. Original results remain intact. Never mix
-results produced by different code/config versions. This small development run
-cannot establish SOTA or a reliable accuracy gain on unseen tasks.
-
-## Game of 24
-
-See [GAME24.md](GAME24.md) for the new task, eight-method comparison, exact
-verification, local dataset preparation and run commands. Previous Game of 24 results are preserved; this corrected revision has only offline tests. Use `python -m costbench.game24`, not the GSM8K runner.
-
-## 1. Requirements
-
-- Windows PowerShell, Python **3.11 or newer**.
-- Ollama running locally at `http://localhost:11434`.
-- Default model: **`qwen2.5:7b-instruct`**, already found installed on your PC.
-- RTX 4060 8 GB VRAM / 16 GB RAM: one quantized model is shared sequentially by all
-  methods. The configured context is 8192 tokens.
-- **No pip packages, paid API, remote judge or embedding model required.**
-
-All commands below must be run from **final_proj**, not its parent project:
+The offline tests use synthetic questions and mocked model responses. For a live run, start Ollama, download the default model if needed, and check the connection. The default endpoint is `http://localhost:11434`.
 
 ```powershell
-cd "C:\Users\dhruv\OneDrive\Documents\COST\final_proj"
 python --version
+python -m unittest discover -s tests -v
+ollama pull qwen2.5:7b-instruct
 python -m costbench doctor
 ```
 
-`doctor` checks the installed model and server without generating an answer. If
-Ollama is not running, start its desktop application. If the model is missing:
+### Run one question and open the results
+
+This command runs all six GSM8K methods on one development question. The HTML report shows each prediction, its correctness and its inference cost.
 
 ```powershell
-ollama pull qwen2.5:7b-instruct
+python -u -m costbench run --dataset data/gsm8k_dev_100.jsonl --limit 1 --output results/gsm8k_smoke
+Invoke-Item results/gsm8k_smoke/report.html
 ```
 
-## 2. Run the experiment yourself
+### Run the benchmarks
 
-Start with a **development** question to check your runtime and formatting:
-
-```powershell
-python -u -m costbench run --dataset data/gsm8k_dev_100.jsonl --limit 1 --output results/dev_check_v3
-```
-
-Run all **100 fixed GSM8K test questions**:
+Choose the command for the task and split you want to evaluate. Each output directory holds one configuration, dataset selection and seed.
 
 ```powershell
+# GSM8K: 30 development questions, or the full bundled 100-question test sample
+python -u -m costbench run --dataset data/gsm8k_dev_100.jsonl --limit 30 --seed 42 --output results/gsm8k_dev30
 python -u -m costbench run --output results/gsm8k100_v6
+
+# Game of 24: 10 development puzzles, or all 100 generated test puzzles
+python -u -m costbench.game24 run --dataset data/game24/game24_dev.jsonl --limit 10 --output results/game24_dev10_exp64
+python -u -m costbench.game24 run --seed 42 --output results/game24_test100_exp64_seed42
 ```
 
-Optional PowerShell wrapper for the same full run:
+The Game of 24 commands use the report's **64-expansion limit** by default. To run all three reported seeds on the same 100 generated test puzzles:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/run_benchmark.ps1
+foreach ($seed in 42, 43, 44) {
+    python -u -m costbench.game24 run --seed $seed --output "results/game24_test100_exp64_seed$seed"
+    if ($LASTEXITCODE -ne 0) { break }
+}
 ```
 
-These commands **start real model inference**. They have not been executed here.
-Keep the laptop plugged in and awake. Depending on generation speed and search
-depth, the complete experiment can take hours. Estimate duration using development
-questions rather than repeatedly inspecting test-set performance.
+The GSM8K development command selects the first 30 bundled questions. The report gives the sample size but does not list their IDs. The original-ToT puzzle set and the crossword runner and dataset are outside this checkout.
 
-For a different model or seed, use a fresh output directory:
+### Pause, resume and regenerate reports
+
+From a second PowerShell window, use `status` to inspect a GSM8K run or `pause` to stop either runner after the current method saves. Repeat the original run command to resume. Completed results are skipped, and replayed model calls retain their recorded costs.
 
 ```powershell
-python -u -m costbench run --seed 43 --output results/gsm8k100_v6_seed43
-python -u -m costbench run --model qwen2.5:3b --output results/gsm8k100_v6_3b
+python -m costbench status --output results/gsm8k_dev30
+python -m costbench pause --output results/gsm8k_dev30
+python -m costbench report --output results/gsm8k_dev30
+python -m costbench.game24 report --output results/game24_test100_exp64_seed42
 ```
 
-## 3. Which approaches run?
+The two report commands read saved results without contacting the model. If a backend request fails, restore the Ollama connection and repeat the run command with `--retry-failed`. An affected result carries `unknown_cost=true` because its recorded tokens are a lower bound. A changed model, configuration, code version or question selection requires a fresh output directory.
 
-There are **six methods**: the proposed algorithm, four previously discussed
-baselines, and the additional quality-only control needed to isolate the heuristic.
+## Research question and approach
 
-| Terminal / CSV name | Method |
-|---|---|
-| `heuristic_bestfirst` | Your five-factor best-first search |
-| `cot` | Single-path Chain-of-Thought |
-| `self_consistency` | Six independent complete solutions and plurality voting |
-| `tot_bfs` | ToT-style bounded breadth/beam search, greedy quality selection |
-| `self_eval_beam` | Stochastic beam guided by prompted self-evaluation scores |
-| `quality_bestfirst` | Same best-first engine, ranking by quality alone |
+A correct intermediate step can be expensive to extend, and two highly rated steps can lead through nearly identical calculations. Our search maintains a *frontier* of partial solutions and ranks them by the value of expanding each one next. Early designs scored quality and word overlap with the question. That could reward a step for repeating the prompt or penalize a correct paraphrase. The final rule instead measures novelty against reasoning states the search has already considered and estimates the cost of the next expansion.
 
-All methods use the same structured reasoning format and restricted arithmetic
-checker. They are **calculator-assisted local adaptations**. In particular,
-`self_eval_beam` is not an exact reproduction of the published probability-based
-Self-Evaluation Guided Beam Search objective. No method is advertised as a verified
-2026 SOTA reproduction. See [METHODOLOGY.md](METHODOLOGY.md).
+### Priority function
 
-## 4. Terminal output: all methods on each question
-
-Execution is question-major:
+For a state `s`, the engine expands the candidate with the highest priority.
 
 ```text
-QUESTION 1/100: <question ID>
-<question text>
-Ground truth (evaluator only): <gold>
+H(s) = 0.35 Q(s) + 0.30 P(s) − 0.05 D(s) − 0.15 C(s) + 0.15 V(s)
 
-  heuristic_bestfirst  CORRECT/WRONG answer=... gold=... calls=... tokens=... seconds=...
-  cot                 CORRECT/WRONG answer=... gold=... calls=... tokens=... seconds=...
-  ...remaining methods...
-
-Method                  Prediction      Original  Reviewed  Calls   Tokens    Seconds
-heuristic_bestfirst      ...             ...       ...     ...       ...
-cot                     ...             ...       ...     ...       ...
-self_consistency        ...             ...       ...     ...       ...
-tot_bfs                 ...             ...       ...     ...       ...
-self_eval_beam          ...             ...       ...     ...       ...
-quality_bestfirst       ...             ...       ...     ...       ...
-
-QUESTION 2/100: ...
+D(s) = min(1, depth / maximum_depth) × (1 − P(s))
+C(s) = min(1, estimated_next_tokens / reference_tokens)
+V(s) = novelty(s) × √(Q(s) × P(s))
 ```
 
-This is an **output template**, not experimental results. All six finish on one
-question before the next starts. Method order rotates by question to reduce
-systematic timing/cache-order bias. The summary table uses a fixed order. Methods
-run sequentially, not as six simultaneous GPU workloads. Answers are not shared
-between methods. The gold value is printed by the evaluator, never sent to the LLM.
-
-## 5. Stored results and comparison
-
-The full run creates files in `final_proj/results/gsm8k100_v6/`:
-
-| File | Purpose |
+| Factor | Interpretation |
 |---|---|
-| `per_question.csv` | **One row per question/seed; every method's prediction, correctness, calls, tokens, time and search statistics side by side** |
-| `summary.csv` | Overall accuracy, Wilson interval, mean calls/tokens/time, expansion and failure statistics |
-| `paired_comparisons.csv` | Proposed method minus each comparator, paired accuracy differences and question-bootstrap intervals |
-| `report.html` | Browser dashboard: summary, accuracy/token scatter plot and individual-question table |
-| `report.md` | Human-readable summary |
-| `results_long.csv` | One row per method/question |
-| `results.jsonl` | Append-only machine-readable results; **600 rows** when one seed finishes all 100 questions |
-| `traces/*.json` | Nodes, parent IDs, evaluations, five-factor features, expansion order, duplicate/pruning events |
-| `calls/*.jsonl` | Prompts, model replies, seeds, measured tokens, timings and backend errors |
-| `manifest.json` | Code/data hashes, model digest, frozen config, selected question IDs |
-| `warmups.jsonl` | Model warmup recorded separately from method costs |
+| **Q · Quality** | The model judges whether the reasoning so far is sound and useful. |
+| **P · Success estimate** | The model estimates whether the state can reach a correct answer within the remaining budget. These scores are uncalibrated. |
+| **D · Depth penalty** | A deep path incurs a smaller penalty when the model still expects it to succeed. |
+| **C · Expected token cost** | The engine estimates the next round of work. Evaluation uses recorded input and output tokens. |
+| **V · Diversity** | A new direction earns a larger bonus when both its quality and its estimated chance of success are high. |
 
-Reports refresh after every saved method. Aggregate comparisons use only question
-blocks containing **all six methods**, so partial runs do not compare unequal
-question sets. The per-question table shows pending entries. Refresh the HTML page
-manually to see updates. Files are local and contain the questions/model responses.
+The report describes exploring 15 weight settings on ten development problems. The coefficients above are fixed design choices. Comparing the heuristic with **quality-only best-first search** tests their combined effect while keeping the search engine and task checks in common.
 
-To regenerate reports without calling the LLM:
+### How the search works on each task
 
-```powershell
-python -m costbench report --output results/gsm8k100_v6
-```
+**Game of 24.** A state holds the remaining rational values and the expressions that produced them. Python enumerates legal pairwise operations and merges equivalent number multisets. The model rates a shortlist of successors. Novelty measures multiset Jaccard distance from expanded states, so repeated values count. The cost estimate uses recent response length and the number of remaining terms, normalized by 4,000 tokens. At two values, all four search methods try the final operations locally. A solution must use each original number occurrence exactly once and evaluate exactly to 24. Up to two model calls per method and puzzle can probe uncertain states. The symbolic baseline searches independently and consumes CPU time without model calls.
 
-## 6. Pause, resume and backend errors
+**GSM8K.** Each search method first generates and judges a complete candidate, then explores alternative one-step continuations from the root. Python evaluates numeric expressions with exact arithmetic. The judge assesses interpretation, units, coverage and completion. Explicit rubric failures reduce Q and P, and a sound subtotal can be reopened if the question asks for a further calculation. Novelty uses TF-IDF cosine distance from expanded reasoning paths. Estimated cost includes prompt tokens, expected output and a share of the sibling evaluation call, normalized by 1,200 tokens. Search selects the evaluated completion with the highest `√(Q × P)`. The evaluator then compares its numeric answer with the reference label.
 
-From a second PowerShell window opened in `final_proj`:
+**Mini crosswords (report experiment).** States are partially filled grids. Word lengths and crossing letters constrain candidate entries. Novelty measures how many word slots differ from other frontier states. The cost estimate uses the number of unfilled slots and the average tokens per call. Word accuracy, letter accuracy and complete-grid success capture different degrees of progress.
 
-```powershell
-python -m costbench status --output results/gsm8k100_v6
-python -m costbench pause --output results/gsm8k100_v6
-```
+### Baselines
 
-`pause` waits until the current method finishes and saves its result. Then rerun
-the **same run command** to resume. Completed methods are skipped, and successful
-calls from an interrupted method are replayed without another model request. Their
-original cost remains counted. Do not change code/config/model/data within a run;
-the manifest rejects mixed experiments. Use a new output folder after any change.
+| Method | Comparison |
+|---|---|
+| Chain of Thought (`cot`) | Generate one complete solution. |
+| Self-Consistency (`self_consistency`) | On GSM8K, vote over six normalized numeric answers. On Game of 24, score success if any of six expressions verifies. |
+| Tree of Thoughts (`tot_bfs` in this repository) | Use bounded breadth or beam search for the arithmetic tasks. The crossword experiment uses depth-first search. |
+| Self-evaluation beam (`self_eval_beam`) | Select among candidate states stochastically using prompted model ratings. |
+| Quality-only best-first (`quality_bestfirst`) | Expand the highest-Q state using the same task-specific engine as the five-factor method. |
+| Verified sampling and symbolic search (Game of 24 only) | Stop sampling at the first verified expression, or solve the puzzle with deterministic arithmetic search. |
 
-Ctrl+C also stops the runner, but an in-flight request might have consumed tokens
-that were not returned/logged. Prefer the clean pause command for cost studies.
-After a forced process termination, a stale `run.lock` may remain. Remove it only
-after confirming that the runner process has stopped. Never run two processes
-into the same output folder.
+The five-factor method appears as `heuristic_bestfirst` in reports. All LLM comparisons use local adaptations of the baseline algorithms. On Game of 24, the shared legal-move generator and exact endgame checks also contribute to the difference between state search and full-expression sampling.
 
-Backend errors stop the run rather than silently counting infrastructure problems
-as incorrect answers. If Ollama reports a token-repeat error, timeout, or HTTP 500,
-inspect the call log, check that the server is healthy, and explicitly retry:
+## Experimental results
 
-```powershell
-python -u -m costbench run --output results/gsm8k100_v6 --retry-failed
-```
+The following tables give the aggregates reported in *Cost Aware Heuristic for LLM Reasoning*, §§4.2–4.5, by Nishchay Gupta, Dhruv Gupta and Abhishek Vekariya (10 November 2026). The experiments used Qwen2.5-7B through Ollama. **Mean tokens** counts input plus output per attempt, including generation, evaluation and recorded retries. Percentage savings use `100 × (1 − heuristic mean tokens / baseline mean tokens)`. The raw predictions and call logs for these tables are unavailable in this checkout.
 
-Successful saved calls are reused; the failed request is retried. Because its token
-cost may be unknown, the affected result retains `unknown_cost=true` and a failed
-attempt count. Its reported costs are lower bounds; do not make precise efficiency
-claims from such runs. The dashboard warns when this occurs. Automatic unbounded
-retries are intentionally absent.
+### Generated Game of 24
 
-## 7. Configuration and ablations
+Each method attempted the **same 100 unique puzzles at three seeds** (42, 43 and 44), giving 300 attempts per method. Five-factor search used **42.14% fewer tokens** than ToT BFS and solved 247 attempts versus 240. The report gives an approximate 95% interval of **37.08%–46.47%** for token savings. The experiment did not establish an accuracy advantage.
 
-`configs/default.json` defines the model, search limits and five heuristic weights:
+| Method | Solved / 300 | Success | Mean calls | Mean tokens |
+|---|---:|---:|---:|---:|
+| Chain of Thought | 14 | 4.67% | 1.00 | 238.66 |
+| Self-Consistency (success@6) | 53 | 17.67% | 6.00 | 1,441.30 |
+| ToT BFS | 240 | 80.00% | 10.85 | 6,814.72 |
+| Self-evaluation beam | 238 | 79.33% | 11.50 | 7,043.84 |
+| Quality-only best-first | 243 | 81.00% | 6.96 | 4,655.15 |
+| **Five-factor best-first** | **247** | **82.33%** | **5.79** | **3,943.12** |
 
-```text
-quality 0.35, success 0.30, depth 0.05, cost 0.15, diversity 0.15
-```
+Against the quality-only control, five-factor search used **15.30% fewer tokens**. The deterministic arithmetic solver solved every puzzle with zero model calls.
 
-These are **provisional starting weights**, not optimized settings. Tune only on
-the separate development data. All methods share ceilings of 32 calls, 6144 output
-tokens and 30000 total tokens per question. Search also has depth 8, branch factor
-2, beam width 2, frontier size 12 and at most 12 expanded states. Algorithms can
-finish before those limits. Equal ceilings do not mean equal realized compute.
+### Original-ToT Game of 24
 
-For an ablation, copy the config, set one weight to zero, renormalize the remaining
-weights to sum to one, and run with `--config` and a fresh output directory:
+On a separate 100-puzzle set at seed 42, five-factor search used **44.39% fewer tokens** than ToT BFS and solved **three fewer puzzles**. A dataset audit found 19 starting-number multisets shared with the prepared generated splits. Across the other 81 puzzles, five-factor search solved 66 and ToT BFS solved 71.
 
-```powershell
-python -u -m costbench run --config configs/my_ablation.json --dataset data/gsm8k_dev_100.jsonl --output results/dev_ablation
-```
+| Method | Solved / 100 | Mean calls | Mean tokens |
+|---|---:|---:|---:|
+| ToT BFS | 81 | 12.28 | 7,757.32 |
+| Quality-only best-first | 75 | 8.03 | 5,364.56 |
+| **Five-factor best-first** | **78** | **6.24** | **4,313.82** |
 
-Do not create weight settings based on test-set winners. The quality-only control
-is already included in every default run.
+### Mini crosswords
 
-## 8. Offline checks (no model, no GSM8K inference)
+Both methods attempted the same ten puzzles under two budgets. Five-factor search improved word and letter accuracy at each budget. **Neither method completed a grid.** At the higher budget their mean token use differed by fewer than 360 tokens per puzzle.
 
-```powershell
-python -m unittest discover -s tests -v
-```
+| Token budget | Method | Word accuracy | Letter accuracy | Mean tokens |
+|---|---|---:|---:|---:|
+| 30,000 | ToT DFS | 3.0% | 19.2% | 28,195.2 |
+| 30,000 | Five-factor best-first | 10.0% | 32.4% | 28,916.8 |
+| 120,000 | ToT DFS | 6.0% | 22.0% | 114,485.2 |
+| 120,000 | Five-factor best-first | 11.0% | 34.8% | 114,126.9 |
 
-The tests mock the backend and use tiny synthetic questions. Scratch files are
-created under `final_proj/tests/_tmp/` and cleaned automatically. They verify
-scheduling, gold isolation, safe arithmetic, dynamic diversity, scoring, budgets,
-replay, explicit failure recovery and reports. Passing them does not establish
-model accuracy or runtime compatibility; the development run is your next check.
+The lower budget allowed 60 calls and 30 expansions per puzzle. The higher budget allowed 240 calls and 120 expansions.
 
-## 9. Dataset
+### GSM8K development pilot
 
-Two fixed files are bundled from the earlier data preparation:
+All six methods answered **27 of 30 development questions** correctly. Five-factor search used **11.4% fewer tokens** than ToT BFS. A single chain of thought reached the same aggregate accuracy at about one tenth of the five-factor method's token cost.
 
-- `data/gsm8k_test_100.jsonl`: 100 test-split questions, sampling seed 42.
-- `data/gsm8k_dev_100.jsonl`: 100 questions from the separate training split.
-- `data/manifest.json`: official source URLs, source hashes and sampled indices.
+| Method | Correct / 30 | Mean calls | Mean tokens |
+|---|---:|---:|---:|
+| Chain of Thought | 27 | 1.07 | 418.1 |
+| Self-Consistency | 27 | 6.23 | 2,435.6 |
+| ToT BFS | 27 | 9.00 | 4,610.4 |
+| Self-evaluation beam | 27 | 8.77 | 4,424.8 |
+| Quality-only best-first | 27 | 8.73 | 4,493.1 |
+| **Five-factor best-first** | **27** | **8.10** | **4,085.7** |
 
-No earlier predictions/results are copied. Data preparation can be reproduced
-with `python scripts/prepare_data.py` (network needed). Existing manifest hashes
-protect a run from silently changing data. Public GSM8K may overlap pretraining;
-100 questions support a pilot, not a general SOTA claim.
+### What the earlier GSM8K pilot revealed
+
+Two earlier runs informed implementation changes. In the V2 pilot on 18 test questions, five-factor search scored 9/18 and returned no prediction eight times. All eight failures occurred at the root, where invalid assignments or references blocked the first usable step. CoT returned no prediction 16 times. These questions informed later revisions and count as development-exposed. [Bundled pilot statistics](analysis/v2_diagnosis.json)
+
+A subsequent V6 run on ten development questions recorded 9/10 for both five-factor search and self-consistency, at 3,351 and 2,655 mean tokens respectively. CoT and quality-only search each scored 8/10. These figures describe a separate development run from the report's 30-question pilot. Neither pilot provides a held-out estimate for the full dataset.
+
+## Data, configuration and outputs
+
+| Resource | Contents |
+|---|---|
+| [GSM8K manifest](data/manifest.json) | Source hashes and sampled indices for 100 development questions from the official training split and 100 test questions. Both samples use seed 42. |
+| [Reviewed labels](data/label_corrections.json) | An audited correction is scored separately from the original GSM8K label. The evaluator keeps both scores. |
+| [Game of 24 manifest](data/game24/game24_manifest.json) | Three disjoint splits of 100 locally generated solvable puzzles. Permutations of a starting multiset stay in the same split. |
+| [GSM8K configuration](configs/default.json) | Depth 8, branch factor 2, beam width 2, 12 expansions and a best-first frontier of 12. |
+| [Game of 24 configuration](configs/game24.json) | Depth 3 and up to 64 expansions per model-guided search. Both task configurations allow up to 32 model calls, 6,144 output tokens and 30,000 total tokens per method and question. |
+| [V6 linear control](configs/v6_linear_control.json) | Uses plain normalized depth and ungated novelty. Pass it with `--config` on the same development questions and seed to compare the two scoring rules. |
+
+The runners rotate method order by question. Aggregate reports include only questions with results from every method (six for GSM8K, eight for Game of 24). For an individual run, open `report.html` for an overview, then use the files below to inspect a comparison.
+
+| Run output | Use |
+|---|---|
+| `summary.csv`, `report.md` | Compare accuracy, mean model calls and recorded token costs. |
+| `per_question.csv`, `results_long.csv`, `results.jsonl` | Inspect predictions and costs by question and method. |
+| `calls/`, `traces/` | Inspect prompts, responses, state priorities, expansion order and stopping decisions. |
+| `manifest.json` | Identify the configuration, model digest, code and data hashes, and selected question IDs. |
+| `paired_comparisons.csv` (GSM8K) | Read paired accuracy differences and question-bootstrap intervals. GSM8K also records warmup costs separately in `warmups.jsonl`. |
+
+For implementation details, see the [methodology](METHODOLOGY.md), [GSM8K search policies](costbench/methods.py), [Game of 24 engine](costbench/game24.py) and [budget and replay logic](costbench/backend.py).

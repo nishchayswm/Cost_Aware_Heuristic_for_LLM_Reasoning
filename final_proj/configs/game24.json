@@ -16,7 +16,7 @@
   "beam_width": 2,
   "branch_factor": 3,
   "max_depth": 3,
-  "max_expansions": 32,
+  "max_expansions": 64,
   "max_frontier": 12,
   "cost_reference_tokens": 4000,
   "beam_temperature": 0.3,

@@ -1,15 +1,6 @@
 # Algorithm specification and baseline fidelity
 
-**Current implementation is V6.** See [CHANGES_V6.md](CHANGES_V6.md) for
-numeric expressions, complete-solution incumbents, sibling alternatives and bounded
-powers shared by the current methods. The historical specification below describes
-the original formulation; [CHANGES_V5.md](CHANGES_V5.md) and
-[CHANGES_V4.md](CHANGES_V4.md) define the current depth/diversity gates, rubric
-consistency, judging-cost estimate, reopening and final selection. In particular,
-the current C includes judging overhead, the final selector uses sqrt(Q*P), and
-judging uses validated JSON mode rather than the constrained schema. These changes
-apply consistently to the search controls where specified.
-
+**Current implementation is V6.** This document describes the original formulation and its baseline rationale. The consolidated README explains the current depth and diversity terms, judging cost, numeric expressions, complete-solution incumbent, reopening rule and final answer selection. [Current search methodology](README.md#research-question-and-approach)
 
 ## Scope
 
@@ -201,4 +192,4 @@ Blend-ASC, CAPS and Repair-or-Explore are not included in this corrected project
 V3 was informed by inspecting 18 test questions, chiefly structural failures.
 Report this exposure; use separate development data for settings and fresh held-out
 questions for confirmatory claims. Shared formatting improvements must not be
-attributed solely to the heuristic. See CHANGES_V3.md.
+attributed solely to the heuristic. See the [pilot results and failure analysis](README.md#what-the-earlier-gsm8k-pilot-revealed).
