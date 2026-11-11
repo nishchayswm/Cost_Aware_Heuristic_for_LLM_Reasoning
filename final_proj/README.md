@@ -17,23 +17,11 @@ ollama pull qwen2.5:7b-instruct
 python -m costbench doctor
 ```
 
-### Run one question and open the results
-
-This command runs all six GSM8K methods on one development question. The HTML report shows each prediction, its correctness and its inference cost.
-
-```powershell
-python -u -m costbench run --dataset data/gsm8k_dev_100.jsonl --limit 1 --output results/gsm8k_smoke
-Invoke-Item results/gsm8k_smoke/report.html
-```
-
 ### Run the benchmarks
 
 Choose the command for the task and split you want to evaluate. Each output directory holds one configuration, dataset selection and seed.
 
 ```powershell
-# GSM8K: 30 development questions, or the full bundled 100-question test sample
-python -u -m costbench run --dataset data/gsm8k_dev_100.jsonl --limit 30 --seed 42 --output results/gsm8k_dev30
-python -u -m costbench run --output results/gsm8k100_v6
 
 # Game of 24: 10 development puzzles, or all 100 generated test puzzles
 python -u -m costbench.game24 run --dataset data/game24/game24_dev.jsonl --limit 10 --output results/game24_dev10_exp64
@@ -56,9 +44,9 @@ The GSM8K development command selects the first 30 bundled questions. The report
 From a second PowerShell window, use `status` to inspect a GSM8K run or `pause` to stop either runner after the current method saves. Repeat the original run command to resume. Completed results are skipped, and replayed model calls retain their recorded costs.
 
 ```powershell
-python -m costbench status --output results/gsm8k_dev30
-python -m costbench pause --output results/gsm8k_dev30
-python -m costbench report --output results/gsm8k_dev30
+python -m costbench status --output results/game24_test100_exp64_seed42
+python -m costbench pause --output results/game24_test100_exp64_seed42
+python -m costbench report --output results/game24_test100_exp64_seed42
 python -m costbench.game24 report --output results/game24_test100_exp64_seed42
 ```
 
